@@ -10,6 +10,7 @@ class CiviAPI {
 	public $restURL = 'PASS_REST_URL_WHEN_INSTANTIATING_CLASS';
 	public $key = 'PASS_KEY_WHEN_INSTANTIATING_CLASS';
 	public $api_key = 'PASS_API_KEY_WHEN_INSTANTIATING_CLASS';
+	public $log = array();
 
 	public function __construct($restURL = null, $key = null, $api_key = null) {
 		if(!extension_loaded('curl')) trigger_error('CiviAPI requires PHP cURL', E_USER_ERROR);
@@ -37,14 +38,10 @@ class CiviAPI {
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 		curl_setopt($ch, CURLOPT_TIMEOUT, 100);
 
-		// Set Parameters to maintain cookies across sessions
-		curl_setopt($ch, CURLOPT_COOKIESESSION, TRUE);
-		curl_setopt($ch, CURLOPT_COOKIEFILE, '/tmp/cookies_file');
-		curl_setopt($ch, CURLOPT_COOKIEJAR, '/tmp/cookies_file');
-
 		curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($urlfields));
 		curl_setopt($ch, CURLOPT_URL, $url);
 		$response = curl_exec($ch);
+		$this->log[time()] = $url.'?'.http_build_query($urlfields);
 
 		curl_close($ch);
 		return $returnraw ? $reponse : json_decode($response);

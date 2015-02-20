@@ -59,15 +59,17 @@ function webform_external_webform_submission_insert($node, $submission) {
   // CiviCRM
   if (variable_get('webform_external_civi_enabled') && $info->civi_enabled
 		&& $info->civi_rest_url && $info->civi_key && $info->civi_api_key && $info->civi_field_mapping) {
-	_webform_external_push_to_civi($node, $submission, $info, $cid_mapping); 
+	_webform_external_push_to_civi($node, $submission, $info); 
   }
 
   // Salsa
+/* TODO: change Salsa to use _webform_external_map_webform_components, handle multiple ids for groups and action keys
   if (variable_get('webform_external_salsa_enabled') && $info->salsa_enabled
 		&& $info->salsa_node_url && $info->salsa_account_email
 		&& $info->salsa_password && $info->salsa_field_mapping & $info->salsa_organization_key) {
 	_webform_external_push_to_salsa($node, $submission, $info, $cid_mapping);
   }
+*/
 
 }
 
@@ -75,21 +77,26 @@ function webform_external_webform_submission_insert($node, $submission) {
  * API-specific functions
  */
 
-function _webform_external_push_to_civi($node, $submission, $info, $cid_mapping) {
+function _webform_external_push_to_civi($node, $submission, $info) {
+	$debug = '';
+
+	// $debug .= "Submission:\n\n".print_r($submission,1);
+
     $civi_mapping_lines = explode("\n",$info->civi_field_mapping);
     foreach ($civi_mapping_lines as $l) {
       $kv = explode('|',trim($l));
       if (!isset($kv[1]) || !$kv[1]) { $kv[1] = $kv[0]; }
       $civi_mapping[$kv[0]] = $kv[1];
     }
-    // $debug .= "\n\nCivi_mapping:\n\n".print_r($civi_mapping,1);
+    $debug .= "\n\nCivi_mapping:\n\n".print_r($civi_mapping,1);
 
     $civi = new CiviAPI($info->civi_rest_url, $info->civi_key, $info->civi_api_key);
 
-    foreach($civi_mapping as $k => $v) {
-      $civi_data[$k] = isset($submission->data[$cid_mapping[$v]]['value'][0]) ? $submission->data[$cid_mapping[$v]]['value'][0] : '';
-    }
-    // $debug .= "\n\nCivi data:\n\n".print_r($civi_data,1);
+	$debug .= "\n\nCivi API:\n\n".print_r($civi,1);
+
+	$civi_data = _webform_external_map_webform_components($node, $submission, $civi_mapping);
+
+    $debug .= "\n\nCivi data:\n\n".print_r($civi_data,1);
 
     $civi_id = 0;
     $found_by_email = 0;
@@ -98,32 +105,36 @@ function _webform_external_push_to_civi($node, $submission, $info, $cid_mapping)
     if (isset($civi_data['email']) && $civi_data['email']) {
       $response = $civi->call('Contact','get',array('email' => $civi_data['email']));
       if ($response->is_error == 0 && ($response->count > 0)) {
-        if ($response->count == 1) {
-          $civi_id = $response->id;
-          $values_obj = $response->values;
-        } else {
-          // $debug .= "\n\nMultiple matches; here's response->values object:\n\n".print_r($response->values, 1);
-          $values_arr = (array) $response->values;
-          $values_arr = array_values($values_arr);
-          $values_obj = $values_arr[0];
-          $civi_id = $first_obj->contact_id;
+        if ($response->count > 1) {
+          $debug .= "\n\nMultiple matches; here's response->values object:\n\n".print_r($response->values, 1);
         }
+        $values_arr = (array) $response->values;
+        $values_arr = array_values($values_arr);
+        $values_obj = $values_arr[0];
+        $civi_id = $values_obj->contact_id;
         $found_by_email = 1;
       }
     }
     if ($civi_id) { $debug .= "\n\nFound Civi record id $civi_id for email ".$civi_data['email']."."; }
 
     // create or update the record if it doesn't already match
+	$debug .= "\n\nvalues_obj:\n\n".print_r($values_obj,1)."\n\ncivi_data:\n\n".print_r($civi_data,1);
     $record_current = ($civi_id > 0);
+	$debug .= "\n\nRecord_current after checking id: $record_current\n";
+	$debug .= 'isset($civi_data[\'first_name\']): '.isset($civi_data['first_name'])."\n";
+	$debug .= 'isset($values_obj->first_name): '.isset($values_obj->first_name)."\n";
+	$debug .= '$civi_data[\'first_name\'] == $values_obj->first_name: '.($civi_data['first_name'] == $values_obj->first_name)."\n";
     $record_current = $record_current ? (
-			isset($civi_data['first_name']) ? (
-				isset($values_obj->first_name) && ($civi_data['first_name'] == $values_obj->first_name) 			) : $record_current
-		) : 0;
+		isset($civi_data['first_name']) ? (
+			isset($values_obj->first_name) && ($civi_data['first_name'] == $values_obj->first_name) 		) : $record_current
+	) : 0;
+	$debug .= "\n\nRecord_current after checking first_name: $record_current\n";
     $record_current = $record_current ? (
-			isset($civi_data['last_name']) ? (
-				isset($values_obj->last_name) && ($civi_data['last_name'] == $values_obj->last_name)
-			) : $record_current
-		) : 0;
+		isset($civi_data['last_name']) ? (
+			isset($values_obj->last_name) && ($civi_data['last_name'] == $values_obj->last_name)
+		) : $record_current
+	) : 0;
+	$debug .= "\n\nRecord_current after checking last_name: $record_current\n";
     if (!$record_current) {
       $fields = array('contact_type' => 'Individual');
       if (isset($civi_data['first_name'])) { $fields['first_name'] = $civi_data['first_name']; }
@@ -149,6 +160,7 @@ function _webform_external_push_to_civi($node, $submission, $info, $cid_mapping)
 
     // compare submitted address with existing address
     $address = _webform_external_compare_address($values_obj, $civi_data);
+	$debug .= "\n\nvalues_obj:\n\n".print_r($values_obj,1)."\n\ncivi_data:\n\n".print_r($civi_data,1);
     if (!$address->ok) {
       $response = $civi->call('Address','create',array(
         'contact_id' => $civi_id,
@@ -159,7 +171,12 @@ function _webform_external_push_to_civi($node, $submission, $info, $cid_mapping)
         'postal_code' => $address->postal_code,
         'location_type_id' => 1
       ));
+      $debug .= "\n\nresponse:\n\n".print_r($response,1);
     }
+
+	$debug .= "\n\nAPI log:\n\n".print_r($civi->log,1);
+
+	drupal_set_message('<pre>'.$debug.'</pre>');
 }
 
 function _webform_external_push_to_salsa($node, $submission, $info, $cid_mapping) {
@@ -260,6 +277,29 @@ function _webform_external_webform_component_mapping($node) {
   return $mapping;
 }
 
+function _webform_external_map_webform_components($node, $submission, $map) {
+  $mapping = array();
+  $components = $node->webform['components'];
+  foreach ($components as $i => $component) {
+    $key = $component['form_key'];
+    $mapping[$key] = $i;
+  }
+  $module_info = system_get_info('module','webform');
+  $version = substr($module_info['version'],4,1);
+
+  $data = array();
+  if ($version == '3') {
+    foreach($map as $k => $v) {
+      $data[$k] = isset($submission->data[$mapping[$v]]['value'][0]) ? $submission->data[$mapping[$v]]['value'][0] : '';
+    }
+  } elseif ($version == '4') {
+    foreach($map as $k => $v) {
+      $data[$k] = isset($submission->data[$mapping[$v]][0]) ? $submission->data[$mapping[$v]][0] : '';
+    }
+  }
+  return $data;
+}
+
 // compares phone numbers by pulling out all formatting
 function _webform_external_compare_phones($n1, $n2) {
   $n1clean = preg_replace('/[^0-9]/','',$n1);
@@ -277,20 +317,20 @@ function _webform_external_compare_address($obj, $data) {
   }
 
   if ($data['street_address'] &&
-	!_webform_external_compare_string($obj->street_address,$data['street_address'],6)) { $output->ok = 0; }
+	!_webform_external_compare_string($obj->street_address,$data['street_address'],6)) { $address->ok = 0; }
   $address->street_address = $data['street_address'];
 
   if ($data['supplemental_address_1'] &&
-	!_webform_external_compare_string($obj->supplemental_address_1,$data['supplemental_address_1'],6)) { $output->ok = 0; }
+	!_webform_external_compare_string($obj->supplemental_address_1,$data['supplemental_address_1'],6)) { $address->ok = 0; }
   $address->supplemental_address_1 = $data['supplemental_address_1'];
 
-  if ($data['city'] &&!_webform_external_compare_string($obj->city,$data['city'])) { $output->ok = 0; }
+  if ($data['city'] &&!_webform_external_compare_string($obj->city,$data['city'])) { $address->ok = 0; }
   $address->city = $data['city'];
 
-  if ($data['state_province'] && ($obj->state_province != $data['state_province'])) { $output->ok = 0; }
-  $address->state_address = $data['state_province'];
+  if ($data['state_province'] && ($obj->state_province != $data['state_province'])) { $address->ok = 0; }
+  $address->state_province = $data['state_province'];
 
-  if ($data['postal_code'] && !_webform_external_compare_string($obj->postal_code,$data['postal_code'],6)) { $output->ok = 0; }
+  if ($data['postal_code'] && !_webform_external_compare_string($obj->postal_code,$data['postal_code'],6)) { $address->ok = 0; }
   $address->postal_code = $data['postal_code'];
 
   return $address;

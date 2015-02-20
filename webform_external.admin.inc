@@ -14,7 +14,7 @@ function webform_external_config($form, &$form_state) {
 
 	$form['civi'] = array(
 		'#type' => 'fieldset',
-		'#title' => 'Salsa Integration',
+		'#title' => 'CiviCRM Integration',
 		'#collapsible' => TRUE,
 		'#collapsed' => !variable_get('webform_external_civi_enabled'),
 	);
@@ -77,7 +77,7 @@ function webform_external_config($form, &$form_state) {
 	);
 	$form['salsa']['webform_external_salsa_group_ids'] = array(
 		'#type' => 'textfield',
-		'#title' => t('Salsa group id'),
+		'#title' => t('Salsa group ids'),
 		'#default_value' => variable_get('webform_external_salsa_group_ids'),
 	);
 	$form['salsa']['webform_external_salsa_action_keys'] = array(
@@ -153,28 +153,28 @@ function webform_external_manage_options($form, &$form_state, $node) {
   $form['civi']['civi_enabled'] = array (
     '#type' => 'checkbox',
     '#title' => 'Enable CiviCRM integration',
-	'#default' => isset($current->civi_enabled) ? $current->civi_enabled : false,
+	'#default_value' => isset($current->civi_enabled) ? $current->civi_enabled : false,
   );
   $form['civi']['civi_rest_url'] = array(
     '#type' => 'textfield',
     '#title' => 'URL of CiviCRM REST file',
-	'#default' => isset($current->civi_rest_url) ? $current->civi_rest_url : variable_get('webform_external_civi_rest_url',''),
+	'#default_value' => (isset($current->civi_rest_url) && $current->civi_rest_url) ? $current->civi_rest_url : variable_get('webform_external_civi_rest_url',''),
   );
   $form['civi']['civi_key'] = array(
     '#type' => 'textfield',
     '#title' => 'CiviCRM key',
-	'#default' => isset($current->civi_key) ? $current->civi_key : variable_get('webform_external_civi_key',''),
+	'#default_value' => (isset($current->civi_hey) && $current->civi_key) ? $current->civi_key : variable_get('webform_external_civi_key',''),
   );
   $form['civi']['civi_api_key'] = array(
     '#type' => 'textfield',
     '#title' => 'CiviCRM API key',
-	'#default' => isset($current->civi_api_key) ? $current->civi_api_key : variable_get('webform_external_civi_api_key',''),
+	'#default_value' => (isset($current->civi_api_key) && $current->civi_api_key) ? $current->civi_api_key : variable_get('webform_external_civi_api_key',''),
   );
   $form['civi']['civi_field_mapping'] = array(
     '#type' => 'textarea',
     '#title' => 'CiviCRM Field Mapping',
     '#description' => 'One field per line. Use format civi_field|form_key.  If CiviCRM field matches the form_key, you can just enter the key once, without the | character.',
-	'#default' => isset($current->civi_field_mapping) ? $current->civi_field_mapping : '',
+	'#default_value' => isset($current->civi_field_mapping) ? $current->civi_field_mapping : '',
   );
   } // end if civi_enabled
 
@@ -188,74 +188,74 @@ function webform_external_manage_options($form, &$form_state, $node) {
   $form['salsa']['salsa_enabled'] = array (
     '#type' => 'checkbox',
     '#title' => 'Enable Salsa integration',
-	'#default' => isset($current->salsa_enabled) ? $current->salsa_enabled : false,
+	'#default_value' => isset($current->salsa_enabled) ? $current->salsa_enabled : false,
   );
   $form['salsa']['salsa_node_url'] = array(
     '#type' => 'textfield',
     '#title' => 'Salsa node URL (required)',
-	'#default' => isset($current->salsa_node_url) ? $current->salsa_node_url : variable_get('webform_external_salsa_node_url',''),
+	'#default_value' => $current->salsa_node_url ? $current->salsa_node_url : variable_get('webform_external_salsa_node_url',''),
   );
   $form['salsa']['salsa_organization_key'] = array(
     '#type' => 'textfield',
     '#title' => 'Salsa organization key (required)',
-	'#default' => isset($current->salsa_organization_key) ? $current->salsa_organization_key : variable_get('webform_external_salsa_organization_key',''),
+	'#default_value' => $current->salsa_organization_key ? $current->salsa_organization_key : variable_get('webform_external_salsa_organization_key',''),
   );
   $form['salsa']['salsa_chapter_key'] = array(
     '#type' => 'textfield',
     '#title' => 'Salsa chapter key (optional)',
-	'#default' => isset($current->salsa_chapter_key) ? $current->salsa_chapter_key : variable_get('webform_external_salsa_chapter_key',''),
+	'#default_value' => $current->salsa_chapter_key ? $current->salsa_chapter_key : variable_get('webform_external_salsa_chapter_key',''),
   );
   $form['salsa']['salsa_account_email'] = array(
     '#type' => 'textfield',
     '#title' => 'Email of Salsa user account (required)',
-	'#default' => isset($current->salsa_account_email) ? $current->salsa_account_email : variable_get('webform_external_salsa_account_email',''),
+	'#default_value' => $current->salsa_account_email ? $current->salsa_account_email : variable_get('webform_external_salsa_account_email',''),
   );
   $form['salsa']['salsa_password'] = array(
     '#type' => 'textfield',
     '#title' => 'Salsa account password (required)',
-	'#default' => isset($current->salsa_password) ? $current->salsa_password : variable_get('webform_external_salsa_password',''),
+	'#default_value' => $current->salsa_password ? $current->salsa_password : variable_get('webform_external_salsa_password',''),
   );
   $form['salsa']['salsa_field_mapping'] = array(
     '#type' => 'textarea',
     '#title' => 'Salsa Field Mapping (required)',
     '#description' => 'One field per line. Use format Salsa_Field|form_key.  If salsa field matches the form_key, you can just enter the key once, without the | character.',
-	'#default' => isset($current->salsa_field_mapping) ? $current->salsa_field_mapping : '',
+	'#default_value' => $current->salsa_field_mapping,
   );
   $form['salsa']['salsa_boolean_field_mapping'] = array(
     '#type' => 'textarea',
     '#title' => 'Salsa Checkbox to Boolean Field Mapping',
     '#description' => 'One form_key per line. If the value of the key from multiple checkboxes matches a Salsa Field key, that Salsa Field will be set to 1.',
-	'#default' => isset($current->salsa_boolean_field_mapping) ? $current->salsa_boolean_field_mapping : '',
+	'#default_value' => $current->salsa_boolean_field_mapping,
   );
   $form['salsa']['salsa_groups_field_mapping'] = array(
     '#type' => 'textarea',
     '#title' => 'Salsa Checkbox to Group Mapping',
     '#description' => 'One form_key per line. If the value of the key from multiple checkboxes matches a Salsa Group key, the contact will be added to that group.',
-	'#default' => isset($current->salsa_groups_field_mapping) ? $current->salsa_groups_field_mapping : '',
+	'#default_value' => $current->salsa_groups_field_mapping,
   );
   $form['salsa']['salsa_group_ids'] = array(
     '#type' => 'textfield',
     '#title' => 'Salsa Group Ids (optional)',
     '#description' => 'If the id (key) of one or more Salsa groups is entered here, the contact will be added to that group. Must be one or more integers, separated by commas.',
-	'#default' => isset($current->salsa_group_ids) ? $current->salsa_group_ids : variable_get('webform_external_salsa_group_ids',''),
+	'#default_value' => $current->salsa_group_ids ? $current->salsa_group_ids : variable_get('webform_external_salsa_group_ids',''),
   );
   $form['salsa']['salsa_action_keys'] = array(
     '#type' => 'textfield',
     '#title' => 'Salsa Action Keys (optional)',
     '#description' => 'If the id (key) of one or more Salsa actions is entered here, the contact will be marked as having participated in that action. Must be one or more integers, separated by commas.',
-	'#default_value' => isset($current->salsa_action_keys) ? $current->salsa_action_keys : variable_get('webform_external_salsa_action_keys',''),
+	'#default_value' => $current->salsa_action_keys ? $current->salsa_action_keys : variable_get('webform_external_salsa_action_keys',''),
   );
   $form['salsa']['salsa_autoresponder_ids'] = array(
     '#type' => 'textfield',
     '#title' => 'Salsa Autoresponder Ids (optional)',
     '#description' => 'If the (key) of one or more Salsa autoresponders is entered here, the contact will be sent that autoresponder. Must be one or more integers, separated by commas.',
-	'#default_value' => isset($current->salsa_autoresponder_ids) ? $current->salsa_autoresponder_ids : variable_get('webform_external_salsa_autoresponder_ids',''),
+	'#default_value' => $current->salsa_autoresponder_ids ? $current->salsa_autoresponder_ids : variable_get('webform_external_salsa_autoresponder_ids',''),
   );
   $form['salsa']['salsa_tags'] = array(
     '#type' => 'textfield',
     '#title' => 'Salsa Tags (optional)',
     '#description' => 'If one or more tags are entered here, the contact will be tagged in Salsa.  Separate multiple tags with commas.',
-	'#default' => isset($current->salsa_tags) ? $current->salsa_tags : '',
+	'#default_value' => $current->salsa_tags ? $current->salsa_tags : variable_get('webform_external_salsa_tags',''),
   );
   } // end if salsa_enabled
 
@@ -267,7 +267,7 @@ function webform_external_manage_options($form, &$form_state, $node) {
   );
   $form['oid'] = array(
     '#type' => 'hidden',
-	'#value' => isset($current->oid) ? $current->oid : '';
+	'#value' => isset($current->oid) ? $current->oid : '',
   );
   $form['submit'] = array(
     '#type' => 'submit',
@@ -289,9 +289,17 @@ function webform_external_manage_options($form, &$form_state, $node) {
 
 function webform_external_manage_options_validate($form, &$form_state) {
   $values = $form_state['values'];
+
+  if (variable_get('webform_external_civi_enabled',false)) {
+
   if ($values['civi_rest_url'] !== '' && !valid_url($values['civi_rest_url'],true)) {
     form_set_error('civi_rest_url', t('CiviCRM REST URL must be a valid URL.'));
   }
+
+  } // end if civi_enabled
+
+  if (variable_get('webform_external_salsa_enabled',false)) {
+
   if ($values['salsa_node_url'] !== '' && !valid_url($values['salsa_node_url'],true)) {
     form_set_error('salsa_node_url', t('Salsa node URL must be a valid URL.'));
   }
@@ -313,6 +321,8 @@ function webform_external_manage_options_validate($form, &$form_state) {
   if (!_webform_external_validate_multiple_ids($values['salsa_autoresponder_ids'])) {
     form_set_error('salsa_autoresponder_ids', t('Salsa Autoresponder ids must be comma-separated integers.'));
   }
+
+  } // end if Salsa enabled
 }
 
 function webform_external_manage_options_submit($form, &$form_state) {
@@ -342,7 +352,7 @@ function webform_external_manage_options_submit($form, &$form_state) {
  * Utility functions
  */
 
-function _webform_external_validate_integer($int) {
+function _webform_external_validate_integer($id) {
 	if ($id !== '' && (!is_numeric($id) || intval($id) != $id)) { return false; }
 	return true;
 }
