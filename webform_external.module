@@ -1,0 +1,311 @@
+<?php
+
+/**
+ * @file
+ * Dump information from webforms into an external system using an API
+ */
+
+include_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'webform_external') . '/' . 'webform_external.apis.inc';
+
+/**
+ * Implements hook_menu().
+ */
+function webform_external_menu() {
+  $items = array();
+
+  $items['node/%webform_menu/webform/external'] = array(
+    'title' => 'Form external',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('webform_external_manage_options',1),
+    'access callback' => 'node_access',
+    'access arguments' => array('update', 1),
+    'file' => 'webform_external.admin.inc',
+    'weight' => 3,
+    'type' => MENU_LOCAL_TASK,
+  );
+
+  $items['admin/config/content/webform-external'] = array(
+    'title' => 'Configure Webform External',
+	'description' => 'Choose which external APIs are available, and set up site-wide defaults. Each webform will need to be enabled separately, but will inherent these settings as defaults.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('webform_external_config'),
+    'access arguments' => array('access administration pages'),
+    'file' => 'webform_external.admin.inc',
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  return $items;
+
+}
+
+/**
+ * Implements hook_webform_submission_insert().
+ */
+
+function webform_external_webform_submission_insert($node, $submission) {
+  $debug = "*** DEBUG INFO ***";
+
+  // get the external-submission info for this form
+  $query = db_select('webform_external_options','o');
+  $query->fields('o')->condition('nid',$node->nid);
+  $result = $query->execute();
+  foreach ($result as $row) {
+    $info = $row;
+  }
+
+  // get the component form_keys, to match to field mapping
+  $cid_mapping = _webform_external_webform_component_mapping($node);
+
+  // CiviCRM
+  if (variable_get('webform_external_civi_enabled') && $info->civi_enabled
+		&& $info->civi_rest_url && $info->civi_key && $info->civi_api_key && $info->civi_field_mapping) {
+	_webform_external_push_to_civi($node, $submission, $info, $cid_mapping); 
+  }
+
+  // Salsa
+  if (variable_get('webform_external_salsa_enabled') && $info->salsa_enabled
+		&& $info->salsa_node_url && $info->salsa_account_email
+		&& $info->salsa_password && $info->salsa_field_mapping & $info->salsa_organization_key) {
+	_webform_external_push_to_salsa($node, $submission, $info, $cid_mapping);
+  }
+
+}
+
+/**
+ * API-specific functions
+ */
+
+function _webform_external_push_to_civi($node, $submission, $info, $cid_mapping) {
+    $civi_mapping_lines = explode("\n",$info->civi_field_mapping);
+    foreach ($civi_mapping_lines as $l) {
+      $kv = explode('|',trim($l));
+      if (!isset($kv[1]) || !$kv[1]) { $kv[1] = $kv[0]; }
+      $civi_mapping[$kv[0]] = $kv[1];
+    }
+    // $debug .= "\n\nCivi_mapping:\n\n".print_r($civi_mapping,1);
+
+    $civi = new CiviAPI($info->civi_rest_url, $info->civi_key, $info->civi_api_key);
+
+    foreach($civi_mapping as $k => $v) {
+      $civi_data[$k] = isset($submission->data[$cid_mapping[$v]]['value'][0]) ? $submission->data[$cid_mapping[$v]]['value'][0] : '';
+    }
+    // $debug .= "\n\nCivi data:\n\n".print_r($civi_data,1);
+
+    $civi_id = 0;
+    $found_by_email = 0;
+    $values_obj = new stdClass();
+    // if we have an email address, make a request to civi to see if they already exist in the database
+    if (isset($civi_data['email']) && $civi_data['email']) {
+      $response = $civi->call('Contact','get',array('email' => $civi_data['email']));
+      if ($response->is_error == 0 && ($response->count > 0)) {
+        if ($response->count == 1) {
+          $civi_id = $response->id;
+          $values_obj = $response->values;
+        } else {
+          // $debug .= "\n\nMultiple matches; here's response->values object:\n\n".print_r($response->values, 1);
+          $values_arr = (array) $response->values;
+          $values_arr = array_values($values_arr);
+          $values_obj = $values_arr[0];
+          $civi_id = $first_obj->contact_id;
+        }
+        $found_by_email = 1;
+      }
+    }
+    if ($civi_id) { $debug .= "\n\nFound Civi record id $civi_id for email ".$civi_data['email']."."; }
+
+    // create or update the record if it doesn't already match
+    $record_current = ($civi_id > 0);
+    $record_current = $record_current ? (
+			isset($civi_data['first_name']) ? (
+				isset($values_obj->first_name) && ($civi_data['first_name'] == $values_obj->first_name) 			) : $record_current
+		) : 0;
+    $record_current = $record_current ? (
+			isset($civi_data['last_name']) ? (
+				isset($values_obj->last_name) && ($civi_data['last_name'] == $values_obj->last_name)
+			) : $record_current
+		) : 0;
+    if (!$record_current) {
+      $fields = array('contact_type' => 'Individual');
+      if (isset($civi_data['first_name'])) { $fields['first_name'] = $civi_data['first_name']; }
+      if (isset($civi_data['last_name'])) { $fields['last_name'] = $civi_data['last_name']; }
+      if ($civi_id) { $fields['id'] = $civi_id; }
+      $debug .= "\n\nFields for create call:\n\n".print_r($fields, 1);
+      $response = $civi->call('Contact','create',$fields);
+      $civi_id = ($response->is_error == 0) ? $response->id : 0;
+      $debug .= "\n\nResponse from create call:\n\n".print_r($response, 1);
+    }
+
+    // record email if we didn't find an existing record that way
+    if (!$found_by_email && isset($civi_data['email']) && $civi_data['email'] && valid_email_address($civi_data['email'])) {
+      $response = $civi->call('Email','create',array('contact_id' => $civi_id, 'email' => $civi_data['email']));
+    }
+
+    // compare submitted phone number with existing phone number
+    $phoneok = (isset($values_obj->phone) && isset($civi_data['phone'])
+		&& _webform_external_compare_phones($values_obj->phone, $civi_data['phone']) );
+    if (isset($civi_data['phone']) && !$phoneok) {
+      $response = $civi->call('Phone','create',array('contact_id' => $civi_id, 'phone' => $civi_data['phone']));
+    }
+
+    // compare submitted address with existing address
+    $address = _webform_external_compare_address($values_obj, $civi_data);
+    if (!$address->ok) {
+      $response = $civi->call('Address','create',array(
+        'contact_id' => $civi_id,
+        'street_address' => $address->street_address,
+        'supplemental_address_1' => $address->supplemental_address_1,
+        'city' => $address->city,
+        'state_province' => $address->state_province,
+        'postal_code' => $address->postal_code,
+        'location_type_id' => 1
+      ));
+    }
+}
+
+function _webform_external_push_to_salsa($node, $submission, $info, $cid_mapping) {
+
+
+    $salsa_mapping_lines = explode("\n",$info->salsa_field_mapping);
+    foreach ($salsa_mapping_lines as $l) {
+      $kv = explode('|',trim($l));
+      if (!isset($kv[1]) || !$kv[1]) { $kv[1] = $kv[0]; }
+      $salsa_mapping[$kv[0]] = $kv[1];
+    }
+    // $debug .= "\n\nCivi_mapping:\n\n".print_r($civi_mapping,1);
+
+    $salsa = new SalsaAPI($info->salsa_node_url, $info->salsa_account_email, $info->salsa_password);
+
+    foreach($salsa_mapping as $k => $v) {
+      $salsa_data[$k] = isset($submission->data[$cid_mapping[$v]]['value'][0]) ? $submission->data[$cid_mapping[$v]]['value'][0] : '';
+    }
+
+    $apifields = array('xml' => 1, 'object' => 'supporter', 'organization_KEY' => $info->salsa_organization_key);
+	$salsaGroups = array();
+    $callSalsa = false;
+    foreach($salsa_data as $k => $v) {
+      if ($v) { $apifields[$k] = $v; $callSalsa = true; }
+    }
+
+	if ($info->salsa_chapter_key) {
+		$apifields['chapter_KEY'] = $info->salsa_chapter_key;
+	}
+
+	if ($info->salsa_boolean_field_mapping) {
+		$boolean_field_mapping = explode("\n", $info->salsa_boolean_field_mapping);
+		foreach ($boolean_field_mapping as $f) {
+			$sfs = $submission->data[$cid_mapping[$f]]['value'];
+			foreach ($sfs as $sf) {
+				$apifields[$sf] = 1;
+			}
+		}
+	}
+
+	if ($info->salsa_groups_field_mapping) {
+		$groups_field_mapping = explode("\n", $info->salsa_groups_field_mapping);
+		foreach ($groups_field_mapping as $g) {
+			$sgs = $submission->data[$cid_mapping[$g]]['value'];
+			foreach ($sgs as $sg) {
+				$salsaGroups[] = $sg;
+			}
+		}
+	}
+
+	if ($info->salsa_group_id) {
+		$salsaGroups[] = $info->salsa_group_id;
+	}
+
+	if ($info->salsa_action_key) {
+		$apifields['action_KEY'] = $info->action_key;
+	}
+
+	if ($info->salsa_autoresponder_ids) {
+		$apifields['email_trigger_KEYS'] = $info->salsa_autoresponder_ids;
+	}
+
+	if ($info->salsa_tag) {
+		$apifields['tag'] = $info->salsa_tag;
+	}
+
+	$debug .= "\n\nSalsa mapping:\n\n".print_r($salsa_mapping,1);
+	$debug .= "\n\nSalsa data:\n\n".print_r($salsa_data,1);
+	$debug .= "\n\napifields:\n\n".print_r($apifields,1);
+	$debug .= "\n\nsalsaGroups:\n\n".print_r($salsaGroups,1);
+
+	// while we're developing, don't call Salsa
+	// $callSalsa = false;
+	$debug .= "\n\nCID Mapping:\n\n".print_r($cid_mapping,1);
+	$debug .= "\n\nsubmission:\n\n".print_r($submission,1);
+	// mail('jk@webskillet.com','webform external debug',$debug,"From: Firestick Dev <dev@firestick.me>\r\n");
+
+    if ($callSalsa) {
+      // $auth = $salsa->authenticate();
+      $response = $salsa->call('save',$apifields,$salsaGroups);
+    }
+	$debug .= "\n\nauth:\n\n".print_r($auth,1);
+    $debug .= "\n\nSalsa response:\n\n".print_r($response,1);
+
+}
+
+/**
+ * Utility functions
+ */
+
+function _webform_external_webform_component_mapping($node) {
+  $mapping = array();
+  $components = $node->webform['components'];
+  foreach ($components as $i => $component) {
+    $key = $component['form_key'];
+    $mapping[$key] = $i;
+  }
+  return $mapping;
+}
+
+// compares phone numbers by pulling out all formatting
+function _webform_external_compare_phones($n1, $n2) {
+  $n1clean = preg_replace('/[^0-9]/','',$n1);
+  $n2clean = preg_replace('/[^0-9]/','',$n2);
+  return ($n1 == $n2);
+}
+
+// compares addresses and returns an object with submitted data
+function _webform_external_compare_address($obj, $data) {
+  $address = new stdClass();
+  $address->ok = 1;
+  foreach(array('street_address','supplemental_address_1','city','state_province','postal_code') as $n) {
+    $obj->$n = isset($obj->$n) ? $obj->$n : '';
+    $data[$n] = isset($data[$n]) ? $data[$n] : '';
+  }
+
+  if ($data['street_address'] &&
+	!_webform_external_compare_string($obj->street_address,$data['street_address'],6)) { $output->ok = 0; }
+  $address->street_address = $data['street_address'];
+
+  if ($data['supplemental_address_1'] &&
+	!_webform_external_compare_string($obj->supplemental_address_1,$data['supplemental_address_1'],6)) { $output->ok = 0; }
+  $address->supplemental_address_1 = $data['supplemental_address_1'];
+
+  if ($data['city'] &&!_webform_external_compare_string($obj->city,$data['city'])) { $output->ok = 0; }
+  $address->city = $data['city'];
+
+  if ($data['state_province'] && ($obj->state_province != $data['state_province'])) { $output->ok = 0; }
+  $address->state_address = $data['state_province'];
+
+  if ($data['postal_code'] && !_webform_external_compare_string($obj->postal_code,$data['postal_code'],6)) { $output->ok = 0; }
+  $address->postal_code = $data['postal_code'];
+
+  return $address;
+}
+
+function _webform_external_compare_string($s1,$s2,$n=0) {
+  // to lowercase and remove anything that's not alphanumeric
+  $s1 = strtolower($s1);
+  $s2 = strtolower($s2);
+  $s1 = preg_replace('/[^a-z0-9]/','',$s1);
+  $s2 = preg_replace('/[^a-z0-9]/','',$s2);
+  if ($n > 0) {
+    $s1 = substr($s1,0,$n);
+    $s2 = substr($s2,0,$n);
+  }
+  return ($s1 == $s2);
+}
+

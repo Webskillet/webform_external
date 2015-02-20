@@ -1,0 +1,163 @@
+<?php
+
+/**
+ * @file
+ * defines database schema
+ */
+
+/**
+ * Implements hook_schema().
+ */
+
+function webform_external_schema() {
+
+  $schema['webform_external_options'] = array(
+    'description' => 'Stores options for Webform External API',
+    'fields' => array(
+      'oid' => array(
+        'description' => 'Unique identifier for option set',
+        'type' => 'serial',
+        'size' => 'big',
+        'not null' => TRUE,
+      ),
+      'nid' => array(
+        'description' => 'nid of webform node',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'civi_enabled' => array(
+        'description' => 'Enable CiviCRM integration',
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+      ),
+      'civi_rest_url' => array(
+        'description' => 'URL that points to CiviCRM REST implementation',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => TRUE,
+      ),
+      'civi_key' => array(
+        'description' => 'CiviCRM key',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => TRUE,
+      ),
+      'civi_api_key' => array(
+        'description' => 'CiviCRM api key',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => TRUE,
+      ),
+      'civi_field_mapping' => array(
+        'description' => 'CiviCRM field mapping',
+        'type' => 'text',
+        'not null' => TRUE,
+      ),
+      'salsa_enabled' => array(
+        'description' => 'Enable Salsa integration',
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+      ),
+      'salsa_node_url' => array(
+        'description' => 'URL to access Salsa API',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => TRUE,
+      ),
+      'salsa_organization_key' => array(
+        'description' => 'Salsa organization key',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'salsa_chapter_key' => array(
+        'description' => 'Salsa chapter key',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'salsa_account_email' => array(
+        'description' => 'Email of Salsa user account',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => TRUE,
+      ),
+      'salsa_password' => array(
+        'description' => 'Password of Salsa user account',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => TRUE,
+      ),
+      'salsa_field_mapping' => array(
+        'description' => 'Salsa field mapping',
+        'type' => 'text',
+        'not null' => TRUE,
+      ),
+      'salsa_boolean_field_mapping' => array(
+        'description' => 'Salsa checkbox to boolean mapping',
+        'type' => 'text',
+        'not null' => TRUE,
+      ),
+      'salsa_groups_field_mapping' => array(
+        'description' => 'Salsa checkbox to groups mapping',
+        'type' => 'text',
+        'not null' => TRUE,
+      ),
+      'salsa_group_ids' => array(
+        'description' => 'Salsa group ids',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => TRUE,
+      ),
+      'salsa_action_keys' => array(
+        'description' -> 'Salsa action keys',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => TRUE,
+      ),
+      'salsa_autoresponder_ids' => array(
+        'description' => 'Autoresponder ids',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => TRUE,
+      ),
+      'salsa_tags' => array(
+        'description' => 'Salsa tags',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => TRUE,
+      ),
+    ),
+    'primary key' => array('oid'),
+    'unique keys' => array(
+      'oid' => array('oid')
+    ),
+    'indexes' => array(
+      'nid' => array('nid'),
+    ),
+  );
+
+  return $schema;
+
+}
+
+/**
+ * Implements hook_uninstall
+ */
+
+function webform_external_uninstall() {
+	variable_del('webform_external_civi_enabled');
+	variable_del('webform_external_civi_rest_url');
+	variable_del('webform_external_civi_key');
+	variable_del('webform_external_civi_api_key');
+	variable_del('webform_external_salsa_enabled');
+	variable_del('webform_external_salsa_node_url');
+	variable_del('webform_external_salsa_organization_key');
+	variable_del('webform_external_salsa_chapter_key');
+	variable_del('webform_external_salsa_account_email');
+	variable_del('webform_external_salsa_password');
+	variable_del('webform_external_salsa_group_ids');
+	variable_del('webform_external_salsa_action_keys');
+	variable_del('webform_external_salsa_autoresponder_ids');
+	variable_del('webform_external_salsa_tags');
+}
