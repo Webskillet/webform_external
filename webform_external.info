@@ -1,7 +1,7 @@
 name = Webform External
 description = "Allows webforms to place data into external databases using APIs"
 core = 7.x
-version = 7.x-2.0-alpha1
+version = 7.x-2.0-alpha3
 dependencies[] = webform
 package = Webform
 configure = admin/config/content/webform-external

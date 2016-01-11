@@ -54,6 +54,12 @@ function webform_external_schema() {
         'type' => 'text',
         'not null' => FALSE,
       ),
+      'civi_tag_ids' => array(
+        'description' => 'ID of CiviCRM tag(s) to add to contact',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => FALSE,
+      ),
       'salsa_enabled' => array(
         'description' => 'Enable Salsa integration',
         'type' => 'int',
@@ -160,4 +166,21 @@ function webform_external_uninstall() {
 	variable_del('webform_external_salsa_action_keys');
 	variable_del('webform_external_salsa_autoresponder_ids');
 	variable_del('webform_external_salsa_tags');
+}
+
+/**
+ * Implements hook_update_n().
+ */
+
+/**
+ * Add CiviCRM tag option
+ */
+function webform_external_update_7201() {
+	$spec = array(
+        'description' => 'ID of CiviCRM tag(s) to add to contact',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => FALSE,
+	);
+	db_add_field('webform_external_options', 'civi_tag_ids', $spec);
 }

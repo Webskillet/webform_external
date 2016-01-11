@@ -38,10 +38,12 @@ class CiviAPI {
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 		curl_setopt($ch, CURLOPT_TIMEOUT, 100);
 
-		curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($urlfields));
+		$postfields = str_replace('&amp;','&',http_build_query($urlfields));
+		curl_setopt($ch, CURLOPT_POSTFIELDS, $postfields);
+		// $url .= '?' . http_build_query($urlfields);
 		curl_setopt($ch, CURLOPT_URL, $url);
 		$response = curl_exec($ch);
-		$this->log[time()] = $url.'?'.http_build_query($urlfields);
+		$this->log[] = $url .'?'.http_build_query($urlfields);
 
 		curl_close($ch);
 		return $returnraw ? $reponse : json_decode($response);

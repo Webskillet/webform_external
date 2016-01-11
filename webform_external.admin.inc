@@ -176,6 +176,11 @@ function webform_external_manage_options($form, &$form_state, $node) {
     '#description' => 'One field per line. Use format civi_field|form_key.  If CiviCRM field matches the form_key, you can just enter the key once, without the | character.',
 	'#default_value' => isset($current->civi_field_mapping) ? $current->civi_field_mapping : '',
   );
+  $form['civi']['civi_tag_ids'] = array(
+    '#type' => 'textfield',
+    '#title' => 'CiviCRM Tag IDs',
+	'#default_value' => isset($current->civi_tag_ids) ? $current->civi_tag_ids : '',
+  );
   } // end if civi_enabled
 
   if (variable_get('webform_external_salsa_enabled',false)) {
@@ -295,6 +300,9 @@ function webform_external_manage_options_validate($form, &$form_state) {
   if ($values['civi_rest_url'] !== '' && !valid_url($values['civi_rest_url'],true)) {
     form_set_error('civi_rest_url', t('CiviCRM REST URL must be a valid URL.'));
   }
+  if (!_webform_external_validate_multiple_ids($values['civi_tag_ids'])) {
+    form_set_error('civi_tag_ids', t('CiviCRM Tag ids must be comma-separated integers.'));
+  }
 
   } // end if civi_enabled
 
@@ -327,7 +335,7 @@ function webform_external_manage_options_validate($form, &$form_state) {
 
 function webform_external_manage_options_submit($form, &$form_state) {
   $values_to_set = array('nid',
-	'civi_enabled','civi_rest_url','civi_key','civi_api_key','civi_field_mapping',
+	'civi_enabled','civi_rest_url','civi_key','civi_api_key','civi_field_mapping','civi_tag_ids',
 	'salsa_enabled','salsa_node_url','salsa_organization_key','salsa_chapter_key',
 	'salsa_account_email','salsa_password','salsa_field_mapping',
 	'salsa_boolean_field_mapping','salsa_groups_field_mapping',
