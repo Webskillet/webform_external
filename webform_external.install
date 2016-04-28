@@ -54,6 +54,11 @@ function webform_external_schema() {
         'type' => 'text',
         'not null' => FALSE,
       ),
+      'civi_field_defaults' => array(
+        'description' => 'CiviCRM field defaults',
+        'type' => 'text',
+        'not null' => FALSE,
+      ),
       'civi_tag_ids' => array(
         'description' => 'ID of CiviCRM tag(s) to add to contact',
         'type' => 'varchar',
@@ -99,38 +104,65 @@ function webform_external_schema() {
         'type' => 'text',
         'not null' => FALSE,
       ),
-      'salsa_boolean_field_mapping' => array(
-        'description' => 'Salsa checkbox to boolean mapping',
+      'salsa_field_defaults' => array(
+        'description' => 'Salsa field defaults',
         'type' => 'text',
         'not null' => FALSE,
       ),
-      'salsa_groups_field_mapping' => array(
-        'description' => 'Salsa checkbox to groups mapping',
+      'actionnetwork_enabled' => array(
+        'description' => 'Enable Action Network integration',
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => FALSE,
+      ),
+      'actionnetwork_api_key' => array(
+        'description' => 'API Key associated with Action Network group',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => FALSE,
+      ),
+      'actionnetwork_field_mapping' => array(
+        'description' => 'Action Network field mapping',
         'type' => 'text',
         'not null' => FALSE,
       ),
-      'salsa_group_ids' => array(
-        'description' => 'Salsa group ids',
+      'actionnetwork_field_defaults' => array(
+        'description' => 'Action Network field defaults',
+        'type' => 'text',
+        'not null' => FALSE,
+      ),
+      'mcommons_enabled' => array(
+        'description' => 'Enable Mobile Commons integration',
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => FALSE,
+      ),
+      'mcommons_username' => array(
+        'description' => 'Username for Mobile Commons account',
         'type' => 'varchar',
         'length' => '255',
         'not null' => FALSE,
       ),
-      'salsa_action_keys' => array(
-        'description' => 'Salsa action keys',
+      'mcommons_password' => array(
+        'description' => 'Password for Mobile Commons account',
         'type' => 'varchar',
         'length' => '255',
         'not null' => FALSE,
       ),
-      'salsa_autoresponder_ids' => array(
-        'description' => 'Autoresponder ids',
+      'mcommons_api_key' => array(
+        'description' => 'Subdomain for Mobile Commons account',
         'type' => 'varchar',
         'length' => '255',
         'not null' => FALSE,
       ),
-      'salsa_tags' => array(
-        'description' => 'Salsa tags',
-        'type' => 'varchar',
-        'length' => '255',
+      'mcommons_field_mapping' => array(
+        'description' => 'Mobile Commons field mapping',
+        'type' => 'text',
+        'not null' => FALSE,
+      ),
+      'mcommons_field_defaults' => array(
+        'description' => 'Mobile Commons field defaults',
+        'type' => 'text',
         'not null' => FALSE,
       ),
     ),
@@ -166,6 +198,12 @@ function webform_external_uninstall() {
 	variable_del('webform_external_salsa_action_keys');
 	variable_del('webform_external_salsa_autoresponder_ids');
 	variable_del('webform_external_salsa_tags');
+	variable_del('webform_external_actionnetwork_enabled');
+	variable_del('webform_external_actionnetwork_api_key');
+	variable_del('webform_external_mcommons_enabled');
+	variable_del('webform_external_mcommons_username');
+	variable_del('webform_external_mcommons_password');
+	variable_del('webform_external_mcommons_subdomain');
 }
 
 /**
@@ -183,4 +221,123 @@ function webform_external_update_7201() {
         'not null' => FALSE,
 	);
 	db_add_field('webform_external_options', 'civi_tag_ids', $spec);
+}
+
+/**
+ * Create default mapping fields for CiviCRM and Salsa;
+ * Move CiviCRM tag option and Salsa booleans, groups, action keys, autoresponder ids and tags into mapping fields;
+ * Add fields to support Action Network and Mobile Commons.
+ */
+function webform_external_update_7202() {
+	variable_del('webform_external_salsa_group_ids');
+	variable_del('webform_external_salsa_action_keys');
+	variable_del('webform_external_salsa_autoresponder_ids');
+	variable_del('webform_external_salsa_tags');
+
+	// add new fields
+	$spec = array(
+		'civi_field_defaults' => array(
+        	'description' => 'CiviCRM field defaults',
+        	'type' => 'text',
+        	'not null' => FALSE,
+		),
+		'salsa_field_defaults' => array(
+        	'description' => 'Salsa field defaults',
+        	'type' => 'text',
+        	'not null' => FALSE,
+		),
+		'actionnetwork_enabled' => array(
+			'description' => 'Enable Action Network integration',
+			'type' => 'int',
+			'size' => 'tiny',
+			'not null' => FALSE,
+		),
+		'actionnetwork_api_key' => array(
+			'description' => 'API Key associated with Action Network group',
+			'type' => 'varchar',
+			'length' => '255',
+			'not null' => FALSE,
+		),
+		'actionnetwork_field_mapping' => array(
+			'description' => 'Action Network field mapping',
+			'type' => 'text',
+			'not null' => FALSE,
+		),
+		'actionnetwork_field_defaults' => array(
+			'description' => 'Action Network field defaults',
+			'type' => 'text',
+			'not null' => FALSE,
+		),
+		'mcommons_enabled' => array(
+			'description' => 'Enable Mobile Commons integration',
+			'type' => 'int',
+			'size' => 'tiny',
+			'not null' => FALSE,
+		),
+		'mcommons_username' => array(
+			'description' => 'Username for Mobile Commons account',
+			'type' => 'varchar',
+			'length' => '255',
+			'not null' => FALSE,
+		),
+		'mcommons_password' => array(
+			'description' => 'Password for Mobile Commons account',
+			'type' => 'varchar',
+			'length' => '255',
+			'not null' => FALSE,
+		),
+		'mcommons_subdomain' => array(
+			'description' => 'Subdomain for Mobile Commons account',
+			'type' => 'varchar',
+			'length' => '255',
+			'not null' => FALSE,
+		),
+		'mcommons_field_mapping' => array(
+			'description' => 'Mobile Commons field mapping',
+			'type' => 'text',
+			'not null' => FALSE,
+		),
+		'mcommons_field_defaults' => array(
+			'description' => 'Mobile Commons field defaults',
+			'type' => 'text',
+			'not null' => FALSE,
+		),
+	);
+	foreach ($spec as $k => $v) {
+		db_add_field('webform_external_options',$k,$v);
+	}
+
+	// move all information from custom fields into mapping fields
+
+	$result = db_select('webform_external_options','weo')->fields('weo')->execute();
+	while ($row = $result->fetchObject()) {
+		$record = $row;
+		$record->civi_field_defaults = 'tags|'.$row->civi_tag_ids;
+		$record->salsa_field_mapping .= $record->salsa_field_mapping ? "\n" : '';
+		$salsa_boolean_mapping = _webform_external_install_newlines_to_commas($record->salsa_boolean_field_mapping);
+		$record->salsa_field_mapping .= $salsa_boolean_mapping ? "boolean|$salsa_boolean_mapping\n" : ''; 
+		$salsa_groups_mapping = _webform_external_install_newlines_to_commas($record->salsa_groups_field_mapping);
+		$record->salsa_field_mapping .= $salsa_groups_mapping ? "groups|$salsa_groups_mapping\n" : ''; 
+		$record->salsa_field_defaults = '';
+		$record->salsa_field_defaults .= $record->salsa_group_ids ? 'groups|'.$record->salsa_group_ids."\n" : '';
+		$record->salsa_field_defaults .= $record->salsa_action_keys ? 'action_keys|'.$record->salsa_action_keys."\n" : '';
+		$record->salsa_field_defaults .= $record->salsa_autoresponder_ids ? 'autoresponder_ids|'.$record->salsa_autoresponder_ids."\n" : '';
+		$record->salsa_field_defaults .= $record->salsa_tags ? 'tags|'.$record->salsa_tags."\n" : '';
+		drupal_write_record('webform_external_options', $record, 'oid');
+	}
+
+	db_drop_field('webform_external_options', 'civi_tag_ids');
+	db_drop_field('webform_external_options', 'salsa_boolean_field_mapping');
+	db_drop_field('webform_external_options', 'salsa_groups_field_mapping');
+	db_drop_field('webform_external_options', 'salsa_group_ids');
+	db_drop_field('webform_external_options', 'salsa_action_keys');
+	db_drop_field('webform_external_options', 'salsa_autoresponder_ids');
+	db_drop_field('webform_external_options', 'salsa_tags');
+
+}
+
+function _webform_external_install_newlines_to_commas($string) {
+	$string = trim($string);
+	$string = preg_replace("/(\r|\n)+/",",",$string);
+	return $string;
 }

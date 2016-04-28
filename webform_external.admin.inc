@@ -75,25 +75,49 @@ function webform_external_config($form, &$form_state) {
 		'#title' => t('Salsa account password'),
 		'#default_value' => variable_get('webform_external_salsa_password'),
 	);
-	$form['salsa']['webform_external_salsa_group_ids'] = array(
-		'#type' => 'textfield',
-		'#title' => t('Salsa group ids'),
-		'#default_value' => variable_get('webform_external_salsa_group_ids'),
+
+	$form['actionnetwork'] = array(
+		'#type' => 'fieldset',
+		'#title' => 'Action Network Integration',
+		'#collapsible' => TRUE,
+		'#collapsed' => !variable_get('webform_external_actionnetwork_enabled'),
 	);
-	$form['salsa']['webform_external_salsa_action_keys'] = array(
-		'#type' => 'textfield',
-		'#title' => t('Salsa action keys'),
-		'#default_value' => variable_get('webform_external_salsa_action_keys'),
+	$form['actionnetwork']['webform_external_actionnetwork_enabled'] = array(
+    	'#type' => 'checkbox',
+		'#title' => t('Action Network enabled'),
+		'#default_value' => variable_get('webform_external_actionnetwork_enabled'),
 	);
-	$form['salsa']['webform_external_salsa_autoresponder_ids'] = array(
+	$form['actionnetwork']['webform_external_actionnetwork_api_key'] = array(
 		'#type' => 'textfield',
-		'#title' => t('Salsa autoresponder ids'),
-		'#default_value' => variable_get('webform_external_salsa_autoresponder_ids'),
+		'#title' => t('Action Network API key'),
+		'#default_value' => variable_get('webform_external_actionnetwork_api_key'),
 	);
-	$form['salsa']['webform_external_salsa_tags'] = array(
+
+	$form['mcommons'] = array(
+		'#type' => 'fieldset',
+		'#title' => 'Mobile Commons Integration',
+		'#collapsible' => TRUE,
+		'#collapsed' => !variable_get('webform_external_mcommons_enabled'),
+	);
+	$form['mcommons']['webform_external_mcommons_enabled'] = array(
+    	'#type' => 'checkbox',
+		'#title' => t('Mobile Commons enabled'),
+		'#default_value' => variable_get('webform_external_mcommons_enabled'),
+	);
+	$form['mcommons']['webform_external_mcommons_username'] = array(
 		'#type' => 'textfield',
-		'#title' => t('Salsa tag'),
-		'#default_value' => variable_get('webform_external_salsa_tags'),
+		'#title' => t('Mobile Commons Username'),
+		'#default_value' => variable_get('webform_external_mcommons_username'),
+	);
+	$form['mcommons']['webform_external_mcommons_password'] = array(
+		'#type' => 'textfield',
+		'#title' => t('Mobile Commons Password'),
+		'#default_value' => variable_get('webform_external_mcommons_password'),
+	);
+	$form['mcommons']['webform_external_mcommons_subdomain'] = array(
+		'#type' => 'textfield',
+		'#title' => t('Mobile Commons Subdomain'),
+		'#default_value' => variable_get('webform_external_mcommons_subdomain','https://secure.mcommons.com'),
 	);
 
 	return system_settings_form($form);
@@ -116,15 +140,10 @@ function webform_external_config_validate($form, &$form_state) {
   if ($values['webform_external_salsa_account_email'] !== '' && !valid_email_address($values['webform_external_salsa_account_email'])) {
     form_set_error('webform_external_salsa_account_email', t('Salsa Account Email must be a valid email.'));
   }
-  if (!_webform_external_validate_multiple_ids($values['webform_external_salsa_group_ids'])) {
-    form_set_error('webform_external_salsa_group_ids', t('Salsa Group ids must be comma-separated integers.'));
+  if ($values['webform_external_mcommons_subdomain'] !== '' && !valid_url($values['webform_external_mcommons_subdomain'],true)) {
+    form_set_error('webform_external_mcommons_subdomain', t('Mobile Commons Subdomain must be a valid URL.'));
   }
-  if (!_webform_external_validate_multiple_ids($values['webform_external_salsa_action_keys'])) {
-    form_set_error('webform_external_salsa_action_keys', t('Salsa Action Keys must be comma-separated integers.'));
-  }
-  if (!_webform_external_validate_multiple_ids($values['webform_external_salsa_autoresponder_ids'])) {
-    form_set_error('webform_external_salsa_autoresponder_ids', t('Salsa Autoresponder ids must be comma-separated integers.'));
-  }
+
 }
 
 /**
@@ -173,13 +192,14 @@ function webform_external_manage_options($form, &$form_state, $node) {
   $form['civi']['civi_field_mapping'] = array(
     '#type' => 'textarea',
     '#title' => 'CiviCRM Field Mapping',
-    '#description' => 'One field per line. Use format civi_field|form_key.  If CiviCRM field matches the form_key, you can just enter the key once, without the | character.',
+    '#description' => t('<p>One field per line. Use format civi_field|form_key.  If CiviCRM field matches the form_key, you can just enter the key once, without the | character.</p><p>Use <strong>groups</strong> or <strong>tags</strong> to add group or tag ids (value must be an integer, or multiple integers)</p><p>If you use <strong>boolean</strong>, followed by one or more comma-separated form_keys, then if the value of that form_key\'s component evaluates to one or more CiviCRM field names, those CiviCRM fields will be set to 1/true.</p>'),
 	'#default_value' => isset($current->civi_field_mapping) ? $current->civi_field_mapping : '',
   );
-  $form['civi']['civi_tag_ids'] = array(
-    '#type' => 'textfield',
-    '#title' => 'CiviCRM Tag IDs',
-	'#default_value' => isset($current->civi_tag_ids) ? $current->civi_tag_ids : '',
+  $form['civi']['civi_field_defaults'] = array(
+    '#type' => 'textarea',
+    '#title' => 'CiviCRM Default Mapping',
+    '#description' => t('One field per line. Use format civi_field|value. Use <strong>groups</strong> or <strong>tags</strong> to add one or more group or tag id to the record (multiple values should be comma-separated)'),
+	'#default_value' => isset($current->civi_field_defaults) ? $current->civi_field_defaults : '',
   );
   } // end if civi_enabled
 
@@ -198,71 +218,119 @@ function webform_external_manage_options($form, &$form_state, $node) {
   $form['salsa']['salsa_node_url'] = array(
     '#type' => 'textfield',
     '#title' => 'Salsa node URL (required)',
-	'#default_value' => $current->salsa_node_url ? $current->salsa_node_url : variable_get('webform_external_salsa_node_url',''),
+	'#default_value' => isset($current->salsa_node_url) ? $current->salsa_node_url : variable_get('webform_external_salsa_node_url',''),
   );
   $form['salsa']['salsa_organization_key'] = array(
     '#type' => 'textfield',
     '#title' => 'Salsa organization key (required)',
-	'#default_value' => $current->salsa_organization_key ? $current->salsa_organization_key : variable_get('webform_external_salsa_organization_key',''),
+	'#default_value' => isset($current->salsa_organization_key) ? $current->salsa_organization_key : variable_get('webform_external_salsa_organization_key',''),
   );
   $form['salsa']['salsa_chapter_key'] = array(
     '#type' => 'textfield',
     '#title' => 'Salsa chapter key (optional)',
-	'#default_value' => $current->salsa_chapter_key ? $current->salsa_chapter_key : variable_get('webform_external_salsa_chapter_key',''),
+	'#default_value' => isset($current->salsa_chapter_key) ? $current->salsa_chapter_key : variable_get('webform_external_salsa_chapter_key',''),
   );
   $form['salsa']['salsa_account_email'] = array(
     '#type' => 'textfield',
     '#title' => 'Email of Salsa user account (required)',
-	'#default_value' => $current->salsa_account_email ? $current->salsa_account_email : variable_get('webform_external_salsa_account_email',''),
+	'#default_value' => isset($current->salsa_account_email) ? $current->salsa_account_email : variable_get('webform_external_salsa_account_email',''),
   );
   $form['salsa']['salsa_password'] = array(
     '#type' => 'textfield',
     '#title' => 'Salsa account password (required)',
-	'#default_value' => $current->salsa_password ? $current->salsa_password : variable_get('webform_external_salsa_password',''),
+	'#default_value' => isset($current->salsa_password) ? $current->salsa_password : variable_get('webform_external_salsa_password',''),
   );
   $form['salsa']['salsa_field_mapping'] = array(
     '#type' => 'textarea',
     '#title' => 'Salsa Field Mapping (required)',
-    '#description' => 'One field per line. Use format Salsa_Field|form_key.  If salsa field matches the form_key, you can just enter the key once, without the | character.',
-	'#default_value' => $current->salsa_field_mapping,
+    '#description' => '<p>One field per line. Use format Salsa_Field|form_key.  If salsa field matches the form_key, you can just enter the key once, without the | character.</p><p>Use <strong>groups</strong>, <strong>tags</strong>, <strong>action_keys</strong> and <strong>autoresponder_ids</strong> to add group keys, tags, action_keys and autoresponder_ids (value must be an integer, or multiple comma-separated integers).</p><p>If you use <strong>boolean</strong, followed by one or more comma-separated form_keys, then if the value of that form_key\'s component evaluates to one or more Salsa field names, those Salsa fields will be set to 1/true.</p>',
+	'#default_value' => isset($current->salsa_field_mapping) ? $current->salsa_field_mapping : '',
   );
-  $form['salsa']['salsa_boolean_field_mapping'] = array(
+  $form['salsa']['salsa_field_defaults'] = array(
     '#type' => 'textarea',
-    '#title' => 'Salsa Checkbox to Boolean Field Mapping',
-    '#description' => 'One form_key per line. If the value of the key from multiple checkboxes matches a Salsa Field key, that Salsa Field will be set to 1.',
-	'#default_value' => $current->salsa_boolean_field_mapping,
+    '#title' => 'Salsa Default Mapping (required)',
+    '#description' => 'One field per line. Use format Salsa_Field|value. Use <strong>groups</strong>, <strong>tags</strong>, <strong>action_keys</strong> and <strong>autoresponder_ids</strong> as above',
+	'#default_value' => isset($current->salsa_field_defaults) ? $current->salsa_field_defaults : '',
   );
-  $form['salsa']['salsa_groups_field_mapping'] = array(
-    '#type' => 'textarea',
-    '#title' => 'Salsa Checkbox to Group Mapping',
-    '#description' => 'One form_key per line. If the value of the key from multiple checkboxes matches a Salsa Group key, the contact will be added to that group.',
-	'#default_value' => $current->salsa_groups_field_mapping,
-  );
-  $form['salsa']['salsa_group_ids'] = array(
-    '#type' => 'textfield',
-    '#title' => 'Salsa Group Ids (optional)',
-    '#description' => 'If the id (key) of one or more Salsa groups is entered here, the contact will be added to that group. Must be one or more integers, separated by commas.',
-	'#default_value' => $current->salsa_group_ids ? $current->salsa_group_ids : variable_get('webform_external_salsa_group_ids',''),
-  );
-  $form['salsa']['salsa_action_keys'] = array(
-    '#type' => 'textfield',
-    '#title' => 'Salsa Action Keys (optional)',
-    '#description' => 'If the id (key) of one or more Salsa actions is entered here, the contact will be marked as having participated in that action. Must be one or more integers, separated by commas.',
-	'#default_value' => $current->salsa_action_keys ? $current->salsa_action_keys : variable_get('webform_external_salsa_action_keys',''),
-  );
-  $form['salsa']['salsa_autoresponder_ids'] = array(
-    '#type' => 'textfield',
-    '#title' => 'Salsa Autoresponder Ids (optional)',
-    '#description' => 'If the (key) of one or more Salsa autoresponders is entered here, the contact will be sent that autoresponder. Must be one or more integers, separated by commas.',
-	'#default_value' => $current->salsa_autoresponder_ids ? $current->salsa_autoresponder_ids : variable_get('webform_external_salsa_autoresponder_ids',''),
-  );
-  $form['salsa']['salsa_tags'] = array(
-    '#type' => 'textfield',
-    '#title' => 'Salsa Tags (optional)',
-    '#description' => 'If one or more tags are entered here, the contact will be tagged in Salsa.  Separate multiple tags with commas.',
-	'#default_value' => $current->salsa_tags ? $current->salsa_tags : variable_get('webform_external_salsa_tags',''),
-  );
+
   } // end if salsa_enabled
+
+	if (variable_get('webform_external_actionnetwork_enabled',false)) {
+
+		$form['actionnetwork'] = array(
+			'#type' => 'fieldset',
+			'#title' => 'ActionNetwork Integration',
+			'#collapsible' => TRUE,
+			'#collapsed' => isset($current->actionnetwork_enabled) ? !$current->actionnetwork_enabled : true,
+		);
+		$form['actionnetwork']['actionnetwork_enabled'] = array (
+			'#type' => 'checkbox',
+			'#title' => 'Enable Action Network integration',
+			'#default_value' => isset($current->actionnetwork_enabled) ? $current->actionnetwork_enabled : false,
+		);
+		$form['actionnetwork']['actionnetwork_api_key'] = array(
+			'#type' => 'textfield',
+			'#title' => 'Action Network API Key (required)',
+			'#description' => 'API Key associated with Action Network group',
+			'#default_value' => isset($current->actionnetwork_api_key) ? $current->actionnetwork_api_key : variable_get('webform_external_actionnetwork_api_key',''),
+		);
+		$form['actionnetwork']['actionnetwork_field_mapping'] = array(
+			'#type' => 'textarea',
+			'#title' => 'Action Network Field Mapping',
+			'#description' => t('<p>One field per line. Use format actionnetwork_field|form_key.  If Action Network field matches the form_key, you can just enter the key once, without the | character.</p><p>Use <strong>tags</strong> to add one or more tags (multiple values may be separated by commas, and tags must already exist in Action Network)</p><p>If you use <strong>boolean</strong>, followed by one or more comma-separated form_keys, then if the value of that form_key\'s component evaluates to one or more Action Network field names, those Action Network fields will be set to 1/true.</p>'),
+			'#default_value' => isset($current->actionnetwork_field_mapping) ? $current->actionnetwork_field_mapping : '',
+		);
+		$form['actionnetwork']['actionnetwork_field_defaults'] = array(
+			'#type' => 'textarea',
+			'#title' => 'Action Network Field Defaults',
+			'#description' => t('One field per line. Use format actionnetwork_field|value. Use <strong>tags</strong> to add one or more tag to the record (multiple values should be comma-separated, and tags must already exist in Action Network)'),
+			'#default_value' => isset($current->actionnetwork_field_defaults) ? $current->actionnetwork_field_defaults : '',
+		);
+
+	}
+
+	if (variable_get('webform_external_mcommons_enabled',false)) {
+
+		$form['mcommons'] = array(
+			'#type' => 'fieldset',
+			'#title' => 'Mobile Commons Integration',
+			'#collapsible' => TRUE,
+			'#collapsed' => isset($current->mcommons_enabled) ? !$current->mcommons_enabled : true,
+		);
+		$form['mcommons']['mcommons_enabled'] = array (
+			'#type' => 'checkbox',
+			'#title' => 'Enable Mobile Commons integration',
+			'#default_value' => isset($current->mcommons_enabled) ? $current->mcommons_enabled : false,
+		);
+		$form['mcommons']['mcommons_username'] = array(
+			'#type' => 'textfield',
+			'#title' => 'Mobile Commons Username (required)',
+			'#default_value' => isset($current->mcommons_username) ? $current->mcommons_username : variable_get('webform_external_mcommons_username',''),
+		);
+		$form['mcommons']['mcommons_password'] = array(
+			'#type' => 'textfield',
+			'#title' => 'Mobile Commons Password (required)',
+			'#default_value' => isset($current->mcommons_password) ? $current->mcommons_password : variable_get('webform_external_mcommons_password',''),
+		);
+		$form['mcommons']['mcommons_api_key'] = array(
+			'#type' => 'textfield',
+			'#title' => 'Mobile Commons Subdomain (required)',
+			'#default_value' => isset($current->mcommons_api_key) ? $current->mcommons_api_key : variable_get('webform_external_mcommons_subdomain',''),
+		);
+		$form['mcommons']['mcommons_field_mapping'] = array(
+			'#type' => 'textarea',
+			'#title' => 'Mobile Commons Field Mapping',
+			'#description' => t('<p>One field per line. Use format mcommons_field|form_key.</p><p>If you use <strong>boolean</strong>, followed by one or more comma-separated form_keys, then if the value of that form_key\'s component evaluates to one or more Action Network field names, those Action Network fields will be set to 1/true.</p>'),
+			'#default_value' => isset($current->mcommons_field_mapping) ? $current->mcommons_field_mapping : '',
+		);
+		$form['mcommons']['mcommons_field_defaults'] = array(
+			'#type' => 'textarea',
+			'#title' => 'Mobile Commons Field Defaults',
+			'#description' => t('One field per line. Use format mcommons_field|value.'),
+			'#default_value' => isset($current->mcommons_field_defaults) ? $current->mcommons_field_defaults : '',
+		);
+
+	}
 
   if (count($form)) {
 
@@ -300,9 +368,6 @@ function webform_external_manage_options_validate($form, &$form_state) {
   if ($values['civi_rest_url'] !== '' && !valid_url($values['civi_rest_url'],true)) {
     form_set_error('civi_rest_url', t('CiviCRM REST URL must be a valid URL.'));
   }
-  if (!_webform_external_validate_multiple_ids($values['civi_tag_ids'])) {
-    form_set_error('civi_tag_ids', t('CiviCRM Tag ids must be comma-separated integers.'));
-  }
 
   } // end if civi_enabled
 
@@ -320,26 +385,17 @@ function webform_external_manage_options_validate($form, &$form_state) {
   if ($values['salsa_account_email'] !== '' && !valid_email_address($values['salsa_account_email'])) {
     form_set_error('salsa_account_email', t('Salsa Account Email must be a valid email.'));
   }
-  if (!_webform_external_validate_multiple_ids($values['salsa_group_ids'])) {
-    form_set_error('salsa_group_ids', t('Salsa Group ids must be comma-separated integers.'));
-  }
-  if (!_webform_external_validate_multiple_ids($values['salsa_action_keys'])) {
-    form_set_error('salsa_action_keys', t('Salsa Action Keys must be comma-separated integers.'));
-  }
-  if (!_webform_external_validate_multiple_ids($values['salsa_autoresponder_ids'])) {
-    form_set_error('salsa_autoresponder_ids', t('Salsa Autoresponder ids must be comma-separated integers.'));
-  }
 
   } // end if Salsa enabled
 }
 
 function webform_external_manage_options_submit($form, &$form_state) {
   $values_to_set = array('nid',
-	'civi_enabled','civi_rest_url','civi_key','civi_api_key','civi_field_mapping','civi_tag_ids',
-	'salsa_enabled','salsa_node_url','salsa_organization_key','salsa_chapter_key',
-	'salsa_account_email','salsa_password','salsa_field_mapping',
-	'salsa_boolean_field_mapping','salsa_groups_field_mapping',
-	'salsa_group_ids','salsa_action_keys','salsa_autoresponder_ids','salsa_tags');
+	'civi_enabled','civi_rest_url','civi_key','civi_api_key','civi_field_mapping','civi_field_defaults',
+	'salsa_enabled','salsa_node_url','salsa_organization_key','salsa_chapter_key','salsa_account_email','salsa_password','salsa_field_mapping','salsa__field_defaults',
+	'actionnetwork_enabled','actionnetwork_api_key','actionnetwork_field_mapping','actionnetwork_field_defaults',
+	'mcommons_enabled','mcommons_username','mcommons_password','mcommons_api_key','mcommons_field_mapping','mcommons_field_defaults',
+  );
   $values = $form_state['values'];
   echo '</pre>';
   $record = new stdClass();
