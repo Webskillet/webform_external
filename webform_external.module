@@ -244,7 +244,7 @@ function _webform_external_push_to_actionnetwork($node, $submission, $options) {
 
 	$tags = null;
 	if (isset($data['tags'])) {
-		$tags = $data['tags'];
+		$tags = explode(',',$data['tags']);
 		unset($data['tags']);
 	}
 

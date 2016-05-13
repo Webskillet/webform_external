@@ -277,7 +277,7 @@ function webform_external_manage_options($form, &$form_state, $node) {
 		$form['actionnetwork']['actionnetwork_field_mapping'] = array(
 			'#type' => 'textarea',
 			'#title' => 'Action Network Field Mapping',
-			'#description' => t('<p>One field per line. Use format actionnetwork_field|form_key.  If Action Network field matches the form_key, you can just enter the key once, without the | character.</p><p>Use <strong>tags</strong> to add one or more tags (multiple values may be separated by commas, and tags must already exist in Action Network)</p><p>If you use <strong>boolean</strong>, followed by one or more comma-separated form_keys, then if the value of that form_key\'s component evaluates to one or more Action Network field names, those Action Network fields will be set to 1/true.</p>'),
+			'#description' => t('<p>One field per line. Use format actionnetwork_field|form_key.  If Action Network field matches the form_key, you can just enter the key once, without the | character.</p><p><strong>IMPORTANT:</strong> the Action Network fields email and postal_code <em>must</em> be included, either as a mapped field or a default, and must be non-empty, otherwise the data will <em>not</em> be submitted to Action Network. If the value of email is non-empty but not a valid email, the data will be submitted to Action Network but the submission will fail.</p><p>Use <strong>tags</strong> to add one or more tags (multiple values may be separated by commas, and tags must already exist in Action Network)</p><p>If you use <strong>boolean</strong>, followed by one or more comma-separated form_keys, then if the value of that form_key\'s component evaluates to one or more Action Network field names, those Action Network fields will be set to 1/true.</p>'),
 			'#default_value' => isset($current->actionnetwork_field_mapping) ? $current->actionnetwork_field_mapping : '',
 		);
 		$form['actionnetwork']['actionnetwork_field_defaults'] = array(
@@ -320,7 +320,7 @@ function webform_external_manage_options($form, &$form_state, $node) {
 		$form['mcommons']['mcommons_field_mapping'] = array(
 			'#type' => 'textarea',
 			'#title' => 'Mobile Commons Field Mapping',
-			'#description' => t('<p>One field per line. Use format mcommons_field|form_key.</p><p>If you use <strong>boolean</strong>, followed by one or more comma-separated form_keys, then if the value of that form_key\'s component evaluates to one or more Action Network field names, those Action Network fields will be set to 1/true.</p>'),
+			'#description' => t('<p>One field per line. Use format mcommons_field|form_key.</p><p><strong>IMPORTANT:</strong> the Mobile Commons field phone_number <em>must</em> be included, either as a mapped field or a default, and must be non-empty, otherwise the data will <em>not</em> be submitted to Mobile Commons. If the value of phone_number is non-empty but not a valid phone number, the data will be submitted to Mobile Commons but the submission will fail.</p><p>If you use <strong>boolean</strong>, followed by one or more comma-separated form_keys, then if the value of that form_key\'s component evaluates to one or more Mobile Commons field names, those Mobile Commons fields will be set to 1/true.</p>'),
 			'#default_value' => isset($current->mcommons_field_mapping) ? $current->mcommons_field_mapping : '',
 		);
 		$form['mcommons']['mcommons_field_defaults'] = array(
